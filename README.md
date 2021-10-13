@@ -79,6 +79,8 @@ CREATE DATABASE webapp;
 
 ## Built With
 
+*	[Python3](https://www.python.org/) - Python is an interpreted high-level general-purpose programming language.
+
 *	[Flask](https://flask.palletsprojects.com/en/2.0.x/) - Flask is a micro web framework written in Python.
 
 *	[MySQL](https://www.mysql.com/) - MySQL is the world's most popular open source database. With its proven performance, reliability and ease-of-use, MySQL has become the leading database choice for web-based applications, used by high profile web properties including Facebook, Twitter, YouTube, Yahoo! and many more.
