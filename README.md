@@ -33,11 +33,7 @@ Following prerequisite steps are required inn order to setup working environment
 3. Run following mysql query command to create 'webapp' database.
 
 ```
-<<<<<<< HEAD
 CREATE DATABASE webapp;
-=======
-	CREATE DATABASE webapp;
->>>>>>> d786c10e9028d7cc03fefb2ff53a9c465e26a737
 ```
 
 3. Run following commands 
@@ -61,21 +57,21 @@ CREATE DATABASE webapp;
 	-	User creation and last updated datetime fields automatically gets added to the user on successful user account creation.\
 
   **2.	Update existing user API: http://<EC2 instance public IP>:8080/update**\
-    -	Accepts both GET and POST requests\
+  -	Accepts both GET and POST requests\
 	-	GET method simply returns "Welcome to the Update page!" message with success code 200 whereas, POST method updates user account.\
 	-	Update API allows to modify only first name, last name, and, password fields. User can't modify other fields.\
 	-	Whenever there is successful modification to the user account, lastUpdated field autmatically gets updated with current datetime.\
 	-	If user try to update non existing user account, API returns 'error': 'User does not exist!' error message along with 400 Bad Request error code.\
 
   **3.	Get a specific user details API: http://<EC2 instance public IP>:8080/user**\
-    -	Accepts both GET and POST requests\
+  -	Accepts both GET and POST requests\
 	-	GET method simply returns "Welcome to the User page!" message with success code 200 whereas, POST method returns requested user information.\
 	-	API returns only first name, last name, createdAt and, lastUpdated fields.\
 	-	API doesn't return protected fields like password.\
 	-	If user try to find non existing user account, API returns 'error': 'User does not exist!' error message along with 400 Bad Request error code.\
 
   **4.	Get a list of all users API: http://<EC2 instance public IP>:8080/user**\
-    -	Accepts only GET request\
+  -	Accepts only GET request\
 	-	GET method simply returns all the users created so far with success code 200 whereas.\
 	-	API returns only first name, last name, createdAt and, lastUpdated fields.\
 	-	API doesn't return protected fields like password.\
