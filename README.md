@@ -33,7 +33,11 @@ Following prerequisite steps are required inn order to setup working environment
 3. Run following mysql query command to create 'webapp' database.
 
 ```
+<<<<<<< HEAD
 CREATE DATABASE webapp;
+=======
+	CREATE DATABASE webapp;
+>>>>>>> d786c10e9028d7cc03fefb2ff53a9c465e26a737
 ```
 
 3. Run following commands 
@@ -79,13 +83,13 @@ CREATE DATABASE webapp;
 
 ## Built With
 
-* [Flask](https://flask.palletsprojects.com/en/2.0.x/) - Flask is a micro web framework written in Python.
+*	[Flask](https://flask.palletsprojects.com/en/2.0.x/) - Flask is a micro web framework written in Python.
 
-* [MySQL](https://www.mysql.com/) - MySQL is the world's most popular open source database. With its proven performance, reliability and ease-of-use, MySQL has become the leading database choice for web-based applications, used by high profile web properties including Facebook, Twitter, YouTube, Yahoo! and many more.
+*	[MySQL](https://www.mysql.com/) - MySQL is the world's most popular open source database. With its proven performance, reliability and ease-of-use, MySQL has become the leading database choice for web-based applications, used by high profile web properties including Facebook, Twitter, YouTube, Yahoo! and many more.
 
-* [bcrypt](https://www.npmjs.com/package/bcrypt) - A library to help you hash passwords.
+*	[bcrypt](https://www.npmjs.com/package/bcrypt) - A library to help you hash passwords.
 
-* [SQLAlchemy] (https://www.sqlalchemy.org/) - SQLAlchemy is the Python SQL toolkit and Object Relational Mapper that gives application developers the full power and flexibility of SQL.
+*	[SQLAlchemy](https://www.sqlalchemy.org/) - SQLAlchemy is the Python SQL toolkit and Object Relational Mapper that gives application developers the full power and flexibility of SQL.
 
 
 ## Versioning
