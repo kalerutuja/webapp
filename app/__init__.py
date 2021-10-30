@@ -12,11 +12,13 @@ from sqlalchemy.orm import sessionmaker, relationship
 # engine.execute("CREATE DATABASE IF NOT EXISTS webapp")  # create db
 # engine.execute("USE webapp")  # select new db
 db = SQLAlchemy()
+webapp = Flask(__name__)
+
 
 def create_app():
-    webapp = Flask(__name__)
     webapp.config['SECRET_KEY'] = 'gjasdgasgdghjdjsdgksj856876s5s7d57asd55'
-    webapp.config['SQLALCHEMY_DATABASE_URI'] = f'mysql://rutuja:rutuja123@localhost/webapp'
+    # application.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://csye6225:csye6225@csye6225.c6b2oknmn4xd.us-east-1.rds.amazonaws.com/csye6225'
+    webapp.config['SQLALCHEMY_DATABASE_URI'] = f'mysql://csye6225:csye6225@csye6225.c6b2oknmn4xd.us-east-1.rds.amazonaws.com/csye6225'
     webapp.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db.init_app(webapp)
