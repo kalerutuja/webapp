@@ -1,0 +1,30 @@
+sudo apt-get update;
+sudo apt-get upgrade -y;
+sudo apt install mysql-server -y;
+sudo apt install python3-pip -y;
+sudo apt-get install python3-sqlalchemy -y;
+pip3 install flask; pip install flask-sqlalchemy; pip3 install flask-bcrypt; pip install flask-httpauth; pip3 install flask_login;
+
+sudo apt-get install libmysqlclient-dev -y; pip3 install mysqlclient; pip3 install PyJWT;
+
+
+
+
+
+
+
+
+
+
+
+SET PASSWORD FOR 'root'@'localhost' = 'rutuja';
+DELETE FROM mysql.user WHERE User='';
+DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
+DROP DATABASE IF EXISTS test;
+DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
+CREATE USER 'rutuja'@'localhost' IDENTIFIED BY 'rutuja123';
+ALTER USER 'rutuja'@'localhost' IDENTIFIED WITH mysql_native_password BY 'rutuja123';
+GRANT CREATE, ALTER, DROP, INSERT, UPDATE, DELETE, SELECT, REFERENCES, RELOAD on *.* TO 'rutuja'@'localhost' WITH GRANT OPTION;
+CREATE DATABASE webapp;
+USE webapp;
+FLUSH PRIVILEGES;
