@@ -7,7 +7,7 @@ Following prerequisite steps are required inn order to setup working environment
 
 ### Prerequisites
 
-1. OS: Ubuntu 20.4 LTS
+1. OS: Ubuntu  20.4 LTS
 	1. sudo apt update
 	2. sudo apt upgrade
 2. Mysql
