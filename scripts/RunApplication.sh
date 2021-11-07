@@ -6,4 +6,4 @@ if [ $PyPID ]; then
     echo $PyPID
     kill -n 15 $PyPID
 fi
-python3 main.py &
+nohup python3 main.py > /dev/null 2>&1 &
