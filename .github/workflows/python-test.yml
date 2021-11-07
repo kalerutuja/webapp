@@ -1,10 +1,16 @@
-name: Test
-on: [push]
+name: Perform Unit Tests
+on:
+  pull_request:
+    branches: [push]
 jobs:
-  test:
+  unittests:
     runs-on: ubuntu-latest
     steps:
-      - name: Prepare repo
-        uses: actions/checkout@master
-      - name: Test
-        uses: onichandame/python-test-action@master
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          cd $GITHUB_WORKSPACE
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run Tests
+        run: python -m unittest test/test_hypedsearch.py
