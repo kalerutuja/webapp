@@ -13,4 +13,4 @@ jobs:
           python3 -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Run Tests
-        run: python -m unittest test/test_hypedsearch.py
+        run: python -m unittest test_main.py
