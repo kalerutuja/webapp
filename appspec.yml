@@ -10,7 +10,3 @@ hooks:
     - location: scripts/RunApplication.sh
       timeout: 180
       runas: ubuntu
-  ApplicationStop:
-    - location: scripts/StopApplication.sh
-      timeout: 180
-      runas: root
