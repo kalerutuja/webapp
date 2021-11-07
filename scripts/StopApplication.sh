@@ -1,7 +1,7 @@
 #!/bin/bash
 
-PyPID=ps ax | grep 'python3 main.py' | grep -v grep | awk '{print $1}'
-if [ PyPID ] then
-    kill pyPID
+PyPID=`/usr/bin/ps aux | grep "python3 main.py" | grep -v grep | awk '{print $2}'`
+if [ $PyPID ] then
+    kill $pyPID
 fi
-kill pyPID
+kill $pyPID
