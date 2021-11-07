@@ -3,6 +3,6 @@
 PyPID=`/usr/bin/ps aux | grep "python3 main.py" | grep -v grep | awk '{print $2}'`
 cd /home/ubuntu/webapp
 if [ $PyPID ]; then
-    kill -15 $PyPID
+    kill -n 15 $PyPID
 fi
 python3 main.py &
