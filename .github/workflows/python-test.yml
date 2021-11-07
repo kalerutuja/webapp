@@ -11,6 +11,13 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE
           touch /opt/resources
+          echo "1" > /opt/resources
+          echo "2" >> /opt/resources
+          echo "3" >> /opt/resources
+          echo "4" >> /opt/resources
+          echo "5" >> /opt/resources
+          echo "6" >> /opt/resources
+          echo "7" >> /opt/resources
           python3 -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Run Tests
