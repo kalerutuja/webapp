@@ -1,0 +1,12 @@
+version: 0.0
+os: linux
+files:
+  - source: .
+    destination: ./webapp
+hooks:
+  BeforeInstall:
+    - location: scripts/UnzipApplicationArtifact.sh
+  AfterInstall:
+    - location: scripts/RunApplication.sh
+      timeout: 180
+      runas: ubuntu
