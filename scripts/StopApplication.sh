@@ -2,7 +2,7 @@
 
 PyPID=`/usr/bin/ps aux | grep "python3 main.py" | grep -v grep | awk '{print $2}'`
 if [ $PyPID ]; then
-    kill -n 15 $pyPID
+    kill -n 15 $PyPID
 fi
 
-kill -n 15 $pyPID
+kill -n 15 $PyPID
