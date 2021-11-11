@@ -8,13 +8,13 @@ class SignupTest(unittest.TestCase):
 
     def test_index(self):
         self.app = SignupTest.app.test_client()
-        response = self.app.get("/v1/pic")
+        response = self.app.get("/v2/pic")
         statuscode = response.status_code
         self.assertEqual(statuscode, 200)
 
     def test_index_content(self):
         self.app = SignupTest.app.test_client()
-        response = self.app.get("/v1/pic")
+        response = self.app.get("/v2/pic")
         self.assertEqual(response.content_type, "application/json")
 
 

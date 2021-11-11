@@ -46,7 +46,7 @@ def token_required(f):
         return f(curr_user, *args, **kwargs)
     return decorator
 
-@auth.route('/v1/sign-up', methods=['GET','PUT'])
+@auth.route('/v2/sign-up', methods=['GET','PUT'])
 def signup():
     msg = "welcome"
     db.create_all()
@@ -92,7 +92,7 @@ def signup():
             msg = make_response(jsonify({'error': 'Operation can not complete'}), 400)
     return msg
 
-@auth.route('/v1/login',methods = ['GET'])
+@auth.route('/v2/login',methods = ['GET'])
 def login():
     auth0 = request.authorization
     pswd = auth0.password
@@ -182,7 +182,7 @@ def user(curr_user):
 #                  'LastUpdated': user.lastUpdated}), 200)
 #     return msg
 
-@auth.route('/v1/pic',methods=['GET','POST','DELETE'])
+@auth.route('/v2/pic',methods=['GET','POST','DELETE'])
 @token_required
 def pic(curr_user):
     msg = "welcome"
@@ -267,7 +267,7 @@ def pic(curr_user):
             msg = make_response(jsonify({'error': "User doesn't exist!"}), 404)
     return msg
 
-@auth.route('/v1/users', methods=['GET'])
+@auth.route('/v2/users', methods=['GET'])
 def get_all_users():
     users = User.query.all()
     result = []
