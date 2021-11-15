@@ -48,7 +48,7 @@ def token_required(f):
     return decorator
 
 
-@auth.route('/v1/sign-up', methods=['GET', 'PUT'])
+@auth.route('/v1/sign-up', methods=['GET', 'POST'])
 def signup():
     msg = "welcome"
     db.create_all()
@@ -58,7 +58,7 @@ def signup():
     if request.method == 'GET':
         msg = f"Welcome to the Sign up page!"
         return make_response(jsonify({'success': msg}), 200)
-    if request.method == 'PUT':
+    if request.method == 'POST':
         try:
             fname = request.args.get('fname')
             lname = request.args.get('lname')
@@ -174,36 +174,41 @@ def user(curr_user):
     return msg
 
 
-# @auth.route('/update', methods=['GET', 'POST'])
-# @token_required
-# def update(curr_user):
-#     user = User.query.filter_by(uname=curr_user.uname).first()
-#     if user:
-#         fname = request.args.get('fname')
-#         lname = request.args.get('lname')
-#         password = request.args.get('password')
-#         cpassword = request.args.get('cpassword')
-#         if len(password) < 6 or len(password) > 10:
-#             msg = make_response(jsonify({'error': 'Password length must be between 6 to 20 characters!'}), 400)
-#         elif re.search('[0-9]', password) is None:
-#             msg = make_response(jsonify({'error': 'Password must have at least one number!'}), 400)
-#         elif re.search('[A-Z]', password) is None:
-#             msg = make_response(jsonify({'error': 'Password must have at least one capital letter!'}), 400)
-#         elif password != cpassword:
-#             msg = make_response(jsonify({'error': 'Password does not match. Please try again!'}), 400)
-#         else:
-#             hashPassword = bcrypt.hashpw(password.encode('utf-8'), salt)
-#             update = User.query.filter_by(uname=curr_user.uname).first()
-#             update.fname = fname
-#             update.lname = lname
-#             update.password = hashPassword
-#             update.lastUpdated = func.now()
-#             db.session.commit()
-#             msg = make_response(jsonify(
-#                 {'success': 'Your account has been successfully updated!', 'First Name': user.fname,
-#                  'Last Name': user.lname, 'User Name': user.uname, 'CreatedAt': user.createdAt,
-#                  'LastUpdated': user.lastUpdated}), 200)
-#     return msg
+@auth.route('/update', methods=['PUT'])
+@token_required
+def update(curr_user):
+    user = User.query.filter_by(uname=curr_user.uname).first()
+    if user:
+        fname = request.args.get('fname')
+        lname = request.args.get('lname')
+        password = request.args.get('password')
+        cpassword = request.args.get('cpassword')
+        if len(password) < 6 or len(password) > 10:
+            msg = make_response(
+                jsonify({'error': 'Password length must be between 6 to 20 characters!'}), 400)
+        elif re.search('[0-9]', password) is None:
+            msg = make_response(
+                jsonify({'error': 'Password must have at least one number!'}), 400)
+        elif re.search('[A-Z]', password) is None:
+            msg = make_response(
+                jsonify({'error': 'Password must have at least one capital letter!'}), 400)
+        elif password != cpassword:
+            msg = make_response(
+                jsonify({'error': 'Password does not match. Please try again!'}), 400)
+        else:
+            hashPassword = bcrypt.hashpw(password.encode('utf-8'), salt)
+            update = User.query.filter_by(uname=curr_user.uname).first()
+            update.fname = fname
+            update.lname = lname
+            update.password = hashPassword
+            update.lastUpdated = func.now()
+            db.session.commit()
+            msg = make_response(jsonify(
+                {'success': 'Your account has been successfully updated!', 'First Name': user.fname,
+                 'Last Name': user.lname, 'User Name': user.uname, 'CreatedAt': user.createdAt,
+                 'LastUpdated': user.lastUpdated}), 200)
+    return msg
+
 
 @auth.route('/v1/pic', methods=['GET', 'POST', 'DELETE'])
 @token_required
@@ -211,11 +216,10 @@ def pic(curr_user):
     msg = "welcome"
     result = []
     user_info = {}
-    # db.create_all()
-    # db.session.commit()
     user = User.query.filter_by(uname=curr_user.uname).first()
-    data_file_folder = os.path.join(os.getcwd(), 'app/pics')
-    file = os.listdir(data_file_folder)[0]
+    # data_file_folder = os.path.join(os.getcwd(), 'app/pics')
+    # file = os.listdir(data_file_folder)[0]
+    file = request.files['image']
     object_name = user.uname + "/" + file
 
     if request.method == 'POST':
@@ -225,11 +229,12 @@ def pic(curr_user):
             for obj in bucket.objects.filter(Prefix=user.uname + '/'):
                 s3.Object(bucket.name, obj.key).delete()
             if object_name is None:
-                object_name = os.path.join(data_file_folder, file)
+                object_name = user.uname + "/" + file
+                # object_name = os.path.join(data_file_folder, file)
             if not file.startswith('~'):
                 try:
                     client_s3.upload_file(
-                        os.path.join(data_file_folder, file),
+                        file,
                         bucket_name,
                         object_name
                     )
