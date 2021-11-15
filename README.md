@@ -100,4 +100,3 @@ CREATE DATABASE webapp;
 We use [github](https://github.com/) for versioning. For the versions available, see the [tags on this repository](https://github.com/Rutuja-Kale-CYSE6225/webapp).
 
 ## Thank you
-Updating for Demo
