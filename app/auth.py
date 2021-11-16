@@ -217,9 +217,8 @@ def pic(curr_user):
     result = []
     user_info = {}
     user = User.query.filter_by(uname=curr_user.uname).first()
-    # data_file_folder = os.path.join(os.getcwd(), 'app/pics')
-    # file = os.listdir(data_file_folder)[0]
-    file = request.files['image']
+    data_file_folder = os.path.join(os.getcwd(), 'app/pics')
+    file = os.listdir(data_file_folder)[0]
     object_name = user.uname + "/" + file
 
     if request.method == 'POST':
@@ -229,12 +228,11 @@ def pic(curr_user):
             for obj in bucket.objects.filter(Prefix=user.uname + '/'):
                 s3.Object(bucket.name, obj.key).delete()
             if object_name is None:
-                object_name = user.uname + "/" + file
-                # object_name = os.path.join(data_file_folder, file)
+                object_name = os.path.join(data_file_folder, file)
             if not file.startswith('~'):
                 try:
                     client_s3.upload_file(
-                        file,
+                        os.path.join(data_file_folder, file),
                         bucket_name,
                         object_name
                     )
