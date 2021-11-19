@@ -21,6 +21,8 @@ from . import webapp
 
 auth = Blueprint('auth', __name__)
 salt = bcrypt.gensalt(13)
+logging.basicConfig(filename='record.log', level=logging.DEBUG,
+                    format=f'%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s')
 
 # Connect to S3 Service
 # bucket_name = 'csye6225-prod-rutujakale.com'
@@ -50,6 +52,8 @@ def token_required(f):
 
 @auth.route('/v1/sign-up', methods=['GET', 'POST'])
 def signup():
+    webapp.logger.info('Info level log')
+    webapp.logger.warning('Warning level log')
     msg = "welcome"
     db.create_all()
     db.session.commit()
@@ -106,6 +110,8 @@ def signup():
 
 @auth.route('/v1/login', methods=['GET'])
 def login():
+    webapp.logger.info('Info level log')
+    webapp.logger.warning('Warning level log')
     auth0 = request.authorization
     pswd = auth0.password
     hashpass = bcrypt.hashpw(pswd.encode('utf-8'), salt)
@@ -121,6 +127,8 @@ def login():
 @auth.route('/user', methods=['GET', 'POST'])
 @token_required
 def user(curr_user):
+    webapp.logger.info('Info level log')
+    webapp.logger.warning('Warning level log')
     user = User.query.filter_by(uname=curr_user.uname).first()
     if request.method == 'GET':
         try:
@@ -177,6 +185,8 @@ def user(curr_user):
 @auth.route('/update', methods=['PUT'])
 @token_required
 def update(curr_user):
+    webapp.logger.info('Info level log')
+    webapp.logger.warning('Warning level log')
     user = User.query.filter_by(uname=curr_user.uname).first()
     if user:
         fname = request.args.get('fname')
@@ -213,6 +223,8 @@ def update(curr_user):
 @auth.route('/v1/pic', methods=['GET', 'POST', 'DELETE'])
 @token_required
 def pic(curr_user):
+    webapp.logger.info('Info level log')
+    webapp.logger.warning('Warning level log')
     msg = "welcome"
     result = []
     user_info = {}
@@ -309,6 +321,8 @@ def pic(curr_user):
 
 @auth.route('/v1/users', methods=['GET'])
 def get_all_users():
+    webapp.logger.info('Info level log')
+    webapp.logger.warning('Warning level log')
     users = User.query.all()
     result = []
     for user in users:
