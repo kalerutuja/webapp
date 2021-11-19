@@ -5,7 +5,7 @@ files:
     destination: /home/ubuntu/webapp
 hooks:
   BeforeInstall:
-    - location: scripts/StopApplication.sh
+    - location: scripts/RemoveApache.sh
   AfterInstall:
     - location: scripts/RunApplication.sh
       timeout: 180
