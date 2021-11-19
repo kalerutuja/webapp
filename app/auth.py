@@ -21,7 +21,7 @@ from . import webapp
 
 auth = Blueprint('auth', __name__)
 salt = bcrypt.gensalt(13)
-logging.basicConfig(filename='record.log', level=logging.DEBUG,
+logging.basicConfig(filename='logs/records.log', level=logging.DEBUG,
                     format=f'%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s')
 
 # Connect to S3 Service
