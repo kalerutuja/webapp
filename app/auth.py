@@ -216,6 +216,8 @@ def pic(curr_user):
     msg = "welcome"
     result = []
     user_info = {}
+    # db.create_all()
+    # db.session.commit()
     user = User.query.filter_by(uname=curr_user.uname).first()
     data_file_folder = os.path.join(os.getcwd(), 'app/pics')
     file = os.listdir(data_file_folder)[0]
