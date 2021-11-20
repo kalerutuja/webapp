@@ -29,10 +29,12 @@ salt = bcrypt.gensalt(13)
 # For logging
 with open('/tmp/records.log', 'w') as f:
     f.write('Starting Application!')
-
 logging.basicConfig(filename='/tmp/records.log', level=logging.DEBUG,
                     format=f'%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s')
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("http.client")
+logger.setLevel(logging.DEBUG)
+logger.propagate = True
+
 http.client.HTTPConnection.debuglevel = 1
 
 
@@ -42,11 +44,9 @@ def print_to_log(*args):
 
 http.client.print = print_to_log
 
-
+# Metrics
 c = statsd.StatsClient('localhost', 8125)
 
-# Connect to S3 Service
-# bucket_name = 'csye6225-prod-rutujakale.com'
 with open('/opt/resources') as f:
     credentials = [line.rstrip() for line in f]
 
@@ -73,16 +73,17 @@ def token_required(f):
 
 @auth.route('/v1/sign-up', methods=['GET', 'POST'])
 def signup():
-    c.incr("statstest.sign-up.called")
     msg = "welcome"
     db.create_all()
     db.session.commit()
     email_regex = '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
     if request.method == 'GET':
+        c.incr("statsd:Sign-up:GET")
         logger.info("Sending HTTP GET")
         msg = f"Welcome to the Sign up page!"
         return make_response(jsonify({'success': msg}), 200)
     if request.method == 'POST':
+        c.incr("statsd:Sign-up:POST")
         logger.info("Sending HTTP POST")
         try:
             fname = request.args.get('fname')
@@ -131,6 +132,7 @@ def signup():
 
 @auth.route('/v1/login', methods=['GET'])
 def login():
+    c.incr("statsd:login:GET")
     logger.info("Sending HTTP GET")
     auth0 = request.authorization
     pswd = auth0.password
@@ -144,11 +146,12 @@ def login():
     return make_response({'error': "User doesn't exist!"}, 401, {'WWW.Authentication': 'Basic realm: "login required"'})
 
 
-@auth.route('/user', methods=['GET', 'POST'])
+@auth.route('/v1/user', methods=['GET', 'POST'])
 @token_required
 def user(curr_user):
     user = User.query.filter_by(uname=curr_user.uname).first()
     if request.method == 'GET':
+        c.incr("statsd:user:GET")
         logger.info("Sending HTTP GET")
 
         try:
@@ -164,6 +167,7 @@ def user(curr_user):
                 jsonify({'error': 'Operation can not complete'}), 400)
 
     if request.method == 'POST':
+        c.incr("statsd:user:POST")
         logger.info("Sending HTTP POST")
 
         try:
@@ -204,9 +208,10 @@ def user(curr_user):
     return msg
 
 
-@auth.route('/update', methods=['PUT'])
+@auth.route('/v1/update', methods=['PUT'])
 @token_required
 def update(curr_user):
+    c.incr("statsd:update:PUT")
     logger.info("Sending HTTP PUT")
 
     webapp.logger.info('Info level log')
@@ -260,6 +265,7 @@ def pic(curr_user):
     object_name = user.uname + "/" + file
 
     if request.method == 'POST':
+        c.incr("statsd:pic:POST")
         logger.info("Sending HTTP POST")
         if user:
             s3 = boto3.resource('s3')
@@ -301,6 +307,7 @@ def pic(curr_user):
             msg = make_response(jsonify({'error': "User doesn't exist!"}), 404)
 
     if request.method == 'GET':
+        c.incr("statsd:pic:GET")
         logger.info("Sending HTTP GET")
         profile_user = Pic.query.filter_by(uname=curr_user.uname).first()
         if user:
@@ -322,6 +329,7 @@ def pic(curr_user):
             msg = make_response(jsonify({'error': "User doesn't exist!"}), 404)
 
     if request.method == 'DELETE':
+        c.incr("statsd:pic:DELETE")
         logger.info("Sending HTTP DELETE")
         profile_user = Pic.query.filter_by(uname=curr_user.uname).first()
         if user:
@@ -348,8 +356,8 @@ def pic(curr_user):
 
 @auth.route('/v1/users', methods=['GET'])
 def get_all_users():
+    c.incr("statsd:users:GET")
     logger.info("Sending HTTP GET")
-
     webapp.logger.info('Info level log')
     webapp.logger.warning('Warning level log')
     users = User.query.all()
