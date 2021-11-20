@@ -10,5 +10,9 @@ hooks:
     - location: scripts/StopApplication.sh
   AfterInstall:
     - location: scripts/RunApplicationAfter.sh
+      timeout: 180
+      runas: root
   ApplicationStart:
     - location: scripts/RunApplication.sh
+      timeout: 180
+      runas: ubuntu

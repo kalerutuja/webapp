@@ -1,8 +1,7 @@
 #!/bin/bash
 
-pkill -f 'python3 main.py'
-tee >(logger) <<< "webapp: stopped"
 sudo systemctl stop amazon-cloudwatch-agent
+tee >(logger) <<< "amazon-cloudwatch-agent: stopped"
 sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
     -a fetch-config \
     -m ec2 \
