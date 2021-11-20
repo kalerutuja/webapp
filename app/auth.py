@@ -28,6 +28,7 @@ with open('records.log', 'w') as f:
     f.write('Starting Application!')
 
 logging.basicConfig(filename='records.log', level=logging.DEBUG,
+
                     format=f'%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s')
 c = statsd.StatsClient('localhost', 8125)
 
