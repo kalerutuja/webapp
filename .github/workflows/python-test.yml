@@ -11,6 +11,7 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE
           touch /opt/resources
+          touch logs/records.log
           echo "1" > /opt/resources
           echo "2" >> /opt/resources
           echo "3" >> /opt/resources
