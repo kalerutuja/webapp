@@ -10,7 +10,6 @@ jobs:
       - name: Install dependencies
         run: |
           cd $GITHUB_WORKSPACE
-          mkdir /tmp
           touch /opt/resources
           touch /tmp/records.log
           echo "1" > /opt/resources
