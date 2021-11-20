@@ -24,10 +24,11 @@ from . import webapp
 auth = Blueprint('auth', __name__)
 salt = bcrypt.gensalt(13)
 
-with open('logs/records.log', 'w') as f:
+with open('records.log', 'w') as f:
     f.write('Starting Application!')
 
-logging.basicConfig(filename='logs/records.log', level=logging.DEBUG,
+logging.basicConfig(filename='records.log', level=logging.DEBUG,
+
                     format=f'%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s')
 c = statsd.StatsClient('localhost', 8125)
 
