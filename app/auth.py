@@ -7,6 +7,8 @@ import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 import os
 import logging
+import statsd
+import time
 import uuid
 import json
 
@@ -21,9 +23,9 @@ from . import webapp
 
 auth = Blueprint('auth', __name__)
 salt = bcrypt.gensalt(13)
-logging.basicConfig(filename='logs/records.log', level=logging.DEBUG,
+logging.basicConfig(filename='/home/ubuntu/webapp/logs/records.log', level=logging.DEBUG,
                     format=f'%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s')
-
+c = statsd.StatsClient('localhost', 8125)
 # Connect to S3 Service
 # bucket_name = 'csye6225-prod-rutujakale.com'
 with open('/opt/resources') as f:
@@ -52,6 +54,7 @@ def token_required(f):
 
 @auth.route('/v1/sign-up', methods=['GET', 'POST'])
 def signup():
+    c.incr("statstest.sign-up.called")
     webapp.logger.info('Info level log')
     webapp.logger.warning('Warning level log')
     msg = "welcome"
