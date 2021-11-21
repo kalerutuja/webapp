@@ -2,6 +2,7 @@
 
 sudo systemctl stop amazon-cloudwatch-agent
 tee >(logger) <<< "amazon-cloudwatch-agent: stopped"
+mv cloudwatch-config.json /home/ubuntu/
 sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
     -a fetch-config \
     -m ec2 \

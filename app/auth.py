@@ -45,7 +45,9 @@ def print_to_log(*args):
 http.client.print = print_to_log
 
 # Metrics
-c = statsd.StatsClient('localhost', 8125)
+# c = statsd.StatsClient('localhost', 8125)
+statsd.StatsClient(host='localhost', port=8125, prefix=None, maxudpsize=512)
+
 
 with open('/opt/resources') as f:
     credentials = [line.rstrip() for line in f]
@@ -78,12 +80,15 @@ def signup():
     db.session.commit()
     email_regex = '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
     if request.method == 'GET':
-        c.incr("statsd:Sign-up:GET")
+        statsd.StatsClient().incr("statsd_Sign-up_GET")
+        statsd.StatsClient().timer('statsd_Sign-up_GET', rate=1)
         logger.info("Sending HTTP GET")
         msg = f"Welcome to the Sign up page!"
         return make_response(jsonify({'success': msg}), 200)
     if request.method == 'POST':
-        c.incr("statsd:Sign-up:POST")
+        statsd.StatsClient().incr("statsd_Sign-up_POST")
+        statsd.StatsClient().timer('statsd_Sign-up_POST', rate=1)
+
         logger.info("Sending HTTP POST")
         try:
             fname = request.args.get('fname')
@@ -132,7 +137,9 @@ def signup():
 
 @auth.route('/v1/login', methods=['GET'])
 def login():
-    c.incr("statsd:login:GET")
+    statsd.StatsClient().incr("statsd_login_GET")
+    statsd.StatsClient().timer('statsd_login_GET', rate=1)
+
     logger.info("Sending HTTP GET")
     auth0 = request.authorization
     pswd = auth0.password
@@ -151,7 +158,8 @@ def login():
 def user(curr_user):
     user = User.query.filter_by(uname=curr_user.uname).first()
     if request.method == 'GET':
-        c.incr("statsd:user:GET")
+        statsd.StatsClient().incr("statsd_user_GET")
+        statsd.StatsClient().timer('statsd_user_GET', rate=1)
         logger.info("Sending HTTP GET")
 
         try:
@@ -167,7 +175,8 @@ def user(curr_user):
                 jsonify({'error': 'Operation can not complete'}), 400)
 
     if request.method == 'POST':
-        c.incr("statsd:user:POST")
+        statsd.StatsClient().incr("statsd_user_POST")
+        statsd.StatsClient().timer('statsd_user_POST', rate=1)
         logger.info("Sending HTTP POST")
 
         try:
@@ -211,7 +220,8 @@ def user(curr_user):
 @auth.route('/v1/update', methods=['PUT'])
 @token_required
 def update(curr_user):
-    c.incr("statsd:update:PUT")
+    statsd.StatsClient().incr("statsd_update_PUT")
+    statsd.StatsClient().timer('statsd_update_PUT', rate=1)
     logger.info("Sending HTTP PUT")
 
     webapp.logger.info('Info level log')
@@ -265,7 +275,9 @@ def pic(curr_user):
     object_name = user.uname + "/" + file
 
     if request.method == 'POST':
-        c.incr("statsd:pic:POST")
+        statsd.StatsClient().incr("statsd_pic_POST")
+        statsd.StatsClient().timer('statsd_pic_POST', rate=1)
+
         logger.info("Sending HTTP POST")
         if user:
             s3 = boto3.resource('s3')
@@ -307,7 +319,9 @@ def pic(curr_user):
             msg = make_response(jsonify({'error': "User doesn't exist!"}), 404)
 
     if request.method == 'GET':
-        c.incr("statsd:pic:GET")
+        statsd.StatsClient().incr("statsd_pic_GET")
+        statsd.StatsClient().timer('statsd_pic_GET', rate=1)
+
         logger.info("Sending HTTP GET")
         profile_user = Pic.query.filter_by(uname=curr_user.uname).first()
         if user:
@@ -329,7 +343,8 @@ def pic(curr_user):
             msg = make_response(jsonify({'error': "User doesn't exist!"}), 404)
 
     if request.method == 'DELETE':
-        c.incr("statsd:pic:DELETE")
+        statsd.StatsClient().incr("statsd_pic_DELETE")
+        statsd.StatsClient().timer('statsd_pic_DELETE', rate=1)
         logger.info("Sending HTTP DELETE")
         profile_user = Pic.query.filter_by(uname=curr_user.uname).first()
         if user:
@@ -356,7 +371,9 @@ def pic(curr_user):
 
 @auth.route('/v1/users', methods=['GET'])
 def get_all_users():
-    c.incr("statsd:users:GET")
+    statsd.StatsClient().incr("statsd_users_GET")
+    statsd.StatsClient().timer('statsd_users_GET', rate=1)
+
     logger.info("Sending HTTP GET")
     webapp.logger.info('Info level log')
     webapp.logger.warning('Warning level log')
