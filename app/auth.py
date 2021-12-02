@@ -93,7 +93,7 @@ def signup():
         return make_response(jsonify({'success': msg}), 200)
 
     if request.method == 'POST':
-        dynamodb = boto3.client('dynamodb')
+        dynamodb = boto3.client('dynamodb', region_name='us-east-1')
         expiryTimestamp = int(time.time() + 300)
 
         statsd.StatsClient().incr("statsd_Sign-up_POST")
