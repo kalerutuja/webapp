@@ -12,6 +12,7 @@ import time
 import uuid
 import json
 import http
+import hashlib
 
 from datetime import date
 
@@ -92,6 +93,9 @@ def signup():
         return make_response(jsonify({'success': msg}), 200)
 
     if request.method == 'POST':
+        dynamodb = boto3.client('dynamodb')
+        expiryTimestamp = int(time.time() + 300)
+
         statsd.StatsClient().incr("statsd_Sign-up_POST")
         statsd.StatsClient().timer('statsd_Sign-up_POST', rate=1)
 
@@ -100,6 +104,7 @@ def signup():
             fname = request.args.get('fname')
             lname = request.args.get('lname')
             uname = request.args.get('uname')
+            token = hashlib.sha256(uname)
             if re.search(email_regex, uname):
                 user = User.query.filter_by(uname=uname).first()
                 if user:
@@ -129,6 +134,11 @@ def signup():
                         db.session.commit()
                         db.session.add(new_user)
                         db.session.commit()
+                        try:
+                            dynamodb.put_item(TableName=os.environ['user_info'], Item={'id': {'S': 1}, 'uname': {'S': uname}, , 'token': {'S': token}'ttl': {'N': str(expiryTimestamp)}})
+                        except Exception as e:
+                            msg = make_response(
+                                jsonify({'error': 'Operation can not complete'}), 400)
                         msg = f"Welcome {fname} {lname}, your account has been successfully created!"
                         msg = make_response(jsonify({'success': msg}), 200)
             else:
@@ -150,7 +160,8 @@ def login():
     auth0 = request.authorization
     pswd = auth0.password
     hashpass = bcrypt.hashpw(pswd.encode('utf-8'), salt)
-    user = db.session.using_bind('slave').query(User).filter_by(uname=auth0.username).first()
+    user = db.session.using_bind('slave').query(
+        User).filter_by(uname=auth0.username).first()
     if user:
         if not bcrypt.checkpw(user.password, hashpass):
             token = jwt.encode({'user': user.uname, 'exp': datetime.datetime.utcnow(
@@ -163,7 +174,8 @@ def login():
 @token_required
 def user(curr_user):
     if request.method == 'GET':
-        user = db.session.using_bind('slave').query(User).filter_by(uname=curr_user.uname).first()
+        user = db.session.using_bind('slave').query(
+            User).filter_by(uname=curr_user.uname).first()
         statsd.StatsClient().incr("statsd_user_GET")
         statsd.StatsClient().timer('statsd_user_GET', rate=1)
         logger.info("Sending HTTP GET")
@@ -207,7 +219,8 @@ def user(curr_user):
                 else:
                     hashPassword = bcrypt.hashpw(
                         password.encode('utf-8'), salt)
-                    update = User.query.filter_by(uname=curr_user.uname).first()
+                    update = User.query.filter_by(
+                        uname=curr_user.uname).first()
                     update.fname = fname
                     update.lname = lname
                     update.password = hashPassword
@@ -326,12 +339,14 @@ def pic(curr_user):
             msg = make_response(jsonify({'error': "User doesn't exist!"}), 404)
 
     if request.method == 'GET':
-        user = db.session.using_bind('slave').query(User).filter_by(uname=curr_user.uname).first()
+        user = db.session.using_bind('slave').query(
+            User).filter_by(uname=curr_user.uname).first()
         statsd.StatsClient().incr("statsd_pic_GET")
         statsd.StatsClient().timer('statsd_pic_GET', rate=1)
 
         logger.info("Sending HTTP GET")
-        profile_user = db.session.using_bind('slave').query(Pic).filter_by(uname=curr_user.uname).first()
+        profile_user = db.session.using_bind('slave').query(
+            Pic).filter_by(uname=curr_user.uname).first()
         if user:
             if not profile_user:
                 msg = make_response(
