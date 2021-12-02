@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 import os
-
+from .connect import RouteSQLAlchemy, RoutingSession
 from datetime import datetime
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
@@ -11,20 +11,25 @@ from sqlalchemy.orm import sessionmaker, relationship
 # engine = create_engine('mysql://rutuja:rutuja123@localhost')
 # engine.execute("CREATE DATABASE IF NOT EXISTS webapp")  # create db
 # engine.execute("USE webapp")  # select new db
-db = SQLAlchemy()
+db = RouteSQLAlchemy()
 webapp = Flask(__name__)
 
 with open('/opt/resources') as f:
     credentials = [line.rstrip() for line in f]
 
+
 def create_app():
     webapp.config['SECRET_KEY'] = 'gjasdgasgdghjdjsdgksj856876s5s7d57asd55'
     # application.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://csye6225:csye6225@csye6225.c6b2oknmn4xd.us-east-1.rds.amazonaws.com/csye6225'
     # webapp.config['SQLALCHEMY_DATABASE_URI'] = f'mysql://csye6225:csye6225@csye6225.c6b2oknmn4xd.us-east-1.rds.amazonaws.com/csye6225'
-    webapp.config['SQLALCHEMY_DATABASE_URI'] = f'mysql://{credentials[1]}:{credentials[2]}@{credentials[4]}/{credentials[3]}'
+    webapp.config['SQLALCHEMY_DATABASE_URI'] = f'mysql://{credentials[1]}:{credentials[2]}@{credentials[4]}/mastercsye6225'
+    webapp.config['SQLALCHEMY_BINDS'] = {
+        'slave': f'mysql://{credentials[1]}:{credentials[2]}@{credentials[5]}/mastercsye6225'
+    }
     webapp.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db.init_app(webapp)
+    # db.RouteSQLAlchemy(webapp)
     from .auth import auth
     from .views import views
 
@@ -34,4 +39,3 @@ def create_app():
     from .models import User
 
     return webapp
-

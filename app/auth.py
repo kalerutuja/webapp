@@ -46,7 +46,8 @@ http.client.print = print_to_log
 
 # Metrics
 # c = statsd.StatsClient('localhost', 8125)
-statsd.StatsClient(host='localhost', port=8125, prefix=None, maxudpsize=512)
+# statsd.StatsClient(host='localhost', port=8125, prefix=None, maxudpsize=512)
+c = statsd.StatsClient('localhost', 8125)
 
 
 with open('/opt/resources') as f:
@@ -80,11 +81,16 @@ def signup():
     db.session.commit()
     email_regex = '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
     if request.method == 'GET':
+        # dur = (time.time() - start) * 1000
+        # c.timing("tasktime", dur)
+        # c.incr("taskcount")
         statsd.StatsClient().incr("statsd_Sign-up_GET")
         statsd.StatsClient().timer('statsd_Sign-up_GET', rate=1)
+
         logger.info("Sending HTTP GET")
         msg = f"Welcome to the Sign up page!"
         return make_response(jsonify({'success': msg}), 200)
+
     if request.method == 'POST':
         statsd.StatsClient().incr("statsd_Sign-up_POST")
         statsd.StatsClient().timer('statsd_Sign-up_POST', rate=1)
@@ -144,7 +150,7 @@ def login():
     auth0 = request.authorization
     pswd = auth0.password
     hashpass = bcrypt.hashpw(pswd.encode('utf-8'), salt)
-    user = User.query.filter_by(uname=auth0.username).first()
+    user = db.session.using_bind('slave').query(User).filter_by(uname=auth0.username).first()
     if user:
         if not bcrypt.checkpw(user.password, hashpass):
             token = jwt.encode({'user': user.uname, 'exp': datetime.datetime.utcnow(
@@ -156,8 +162,8 @@ def login():
 @auth.route('/v1/user', methods=['GET', 'POST'])
 @token_required
 def user(curr_user):
-    user = User.query.filter_by(uname=curr_user.uname).first()
     if request.method == 'GET':
+        user = db.session.using_bind('slave').query(User).filter_by(uname=curr_user.uname).first()
         statsd.StatsClient().incr("statsd_user_GET")
         statsd.StatsClient().timer('statsd_user_GET', rate=1)
         logger.info("Sending HTTP GET")
@@ -175,6 +181,7 @@ def user(curr_user):
                 jsonify({'error': 'Operation can not complete'}), 400)
 
     if request.method == 'POST':
+        user = User.query.filter_by(uname=curr_user.uname).first()
         statsd.StatsClient().incr("statsd_user_POST")
         statsd.StatsClient().timer('statsd_user_POST', rate=1)
         logger.info("Sending HTTP POST")
@@ -200,8 +207,7 @@ def user(curr_user):
                 else:
                     hashPassword = bcrypt.hashpw(
                         password.encode('utf-8'), salt)
-                    update = User.query.filter_by(
-                        uname=curr_user.uname).first()
+                    update = User.query.filter_by(uname=curr_user.uname).first()
                     update.fname = fname
                     update.lname = lname
                     update.password = hashPassword
@@ -269,12 +275,13 @@ def pic(curr_user):
     user_info = {}
     # db.create_all()
     # db.session.commit()
-    user = User.query.filter_by(uname=curr_user.uname).first()
     data_file_folder = os.path.join(os.getcwd(), 'app/pics')
     file = os.listdir(data_file_folder)[0]
-    object_name = user.uname + "/" + file
 
     if request.method == 'POST':
+        user = User.query.filter_by(uname=curr_user.uname).first()
+
+        object_name = user.uname + "/" + file
         statsd.StatsClient().incr("statsd_pic_POST")
         statsd.StatsClient().timer('statsd_pic_POST', rate=1)
 
@@ -319,11 +326,12 @@ def pic(curr_user):
             msg = make_response(jsonify({'error': "User doesn't exist!"}), 404)
 
     if request.method == 'GET':
+        user = db.session.using_bind('slave').query(User).filter_by(uname=curr_user.uname).first()
         statsd.StatsClient().incr("statsd_pic_GET")
         statsd.StatsClient().timer('statsd_pic_GET', rate=1)
 
         logger.info("Sending HTTP GET")
-        profile_user = Pic.query.filter_by(uname=curr_user.uname).first()
+        profile_user = db.session.using_bind('slave').query(Pic).filter_by(uname=curr_user.uname).first()
         if user:
             if not profile_user:
                 msg = make_response(
@@ -343,6 +351,8 @@ def pic(curr_user):
             msg = make_response(jsonify({'error': "User doesn't exist!"}), 404)
 
     if request.method == 'DELETE':
+        user = User.query.filter_by(uname=curr_user.uname).first()
+
         statsd.StatsClient().incr("statsd_pic_DELETE")
         statsd.StatsClient().timer('statsd_pic_DELETE', rate=1)
         logger.info("Sending HTTP DELETE")
@@ -377,7 +387,7 @@ def get_all_users():
     logger.info("Sending HTTP GET")
     webapp.logger.info('Info level log')
     webapp.logger.warning('Warning level log')
-    users = User.query.all()
+    users = db.session.using_bind('slave').query(User).all()
     result = []
     for user in users:
         user_data = {'First Name': user.fname, 'Last Name': user.lname, 'User Name': user.uname,
