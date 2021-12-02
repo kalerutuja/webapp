@@ -135,7 +135,8 @@ def signup():
                         db.session.add(new_user)
                         db.session.commit()
                         try:
-                            dynamodb.put_item(TableName=os.environ['user_info'], Item={'id': {'S': 1}, 'uname': {'S': uname}, , 'token': {'S': token}'ttl': {'N': str(expiryTimestamp)}})
+                            dynamodb.put_item(TableName=os.environ['user_info'], Item={'id': {'S': 1}, 'uname': {
+                                              'S': uname}, 'token': {'S': token}, 'ttl': {'N': str(expiryTimestamp)}})
                         except Exception as e:
                             msg = make_response(
                                 jsonify({'error': 'Operation can not complete'}), 400)
