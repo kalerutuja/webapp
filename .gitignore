@@ -95,7 +95,7 @@ fabric.properties
 .idea/**/markdown-navigator.xml
 .idea/**/markdown-navigator-enh.xml
 .idea/**/markdown-navigator/
-
+.idea/*
 # Cache file creation bug
 # See https://youtrack.jetbrains.com/issue/JBR-2257
 .idea/$CACHE_FILE$
@@ -243,4 +243,21 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# End of https://www.toptal.com/developers/gitignore/api/python,pycharm
+### VisualStudioCode ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# Local History for Visual Studio Code
+.history/
+
+### VisualStudioCode Patch ###
+# Ignore all local history of files
+.history
+.ionide
+
+# Support for Project snippet scope
+!.vscode/*.code-snippets
