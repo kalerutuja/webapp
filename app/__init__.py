@@ -29,7 +29,6 @@ def create_app():
     webapp.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db.init_app(webapp)
-    # db.RouteSQLAlchemy(webapp)
     from .auth import auth
     from .views import views
 

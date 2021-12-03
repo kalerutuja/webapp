@@ -26,7 +26,6 @@ from . import webapp
 auth = Blueprint('auth', __name__)
 salt = bcrypt.gensalt(13)
 
-
 # For logging
 with open('/tmp/records.log', 'w') as f:
     f.write('Starting Application!')
@@ -44,18 +43,15 @@ def print_to_log(*args):
 
 
 http.client.print = print_to_log
-
-# Metrics
-# c = statsd.StatsClient('localhost', 8125)
-# statsd.StatsClient(host='localhost', port=8125, prefix=None, maxudpsize=512)
 c = statsd.StatsClient('localhost', 8125)
-
 
 with open('/opt/resources') as f:
     credentials = [line.rstrip() for line in f]
 
 bucket_name = credentials[0]
 client_s3 = boto3.client('s3')
+
+
 
 
 def token_required(f):
@@ -72,6 +68,7 @@ def token_required(f):
         except:
             return jsonify({'message': 'token is invalid'})
         return f(curr_user, *args, **kwargs)
+
     return decorator
 
 
@@ -93,18 +90,20 @@ def signup():
         return make_response(jsonify({'success': msg}), 200)
 
     if request.method == 'POST':
-        dynamodb = boto3.client('dynamodb', region_name='us-east-1')
-        expiryTimestamp = int(time.time() + 300)
-
         statsd.StatsClient().incr("statsd_Sign-up_POST")
         statsd.StatsClient().timer('statsd_Sign-up_POST', rate=1)
 
         logger.info("Sending HTTP POST")
+
         try:
             fname = request.args.get('fname')
             lname = request.args.get('lname')
             uname = request.args.get('uname')
-            token = hashlib.sha256(uname)
+            token = hashlib.md5(uname.encode()).hexdigest()
+            expiryTimestamp = int(time.time() + 300)
+            dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+            table = dynamodb.Table('users')
+
             if re.search(email_regex, uname):
                 user = User.query.filter_by(uname=uname).first()
                 if user:
@@ -134,12 +133,21 @@ def signup():
                         db.session.commit()
                         db.session.add(new_user)
                         db.session.commit()
-                        try:
-                            dynamodb.put_item(TableName='user_info', Item={'id': {'S': 1}, 'uname': {
-                                              'S': uname}, 'token': {'S': token}, 'ttl': {'N': str(expiryTimestamp)}})
-                        except Exception as e:
-                            msg = make_response(
-                                jsonify({'error': 'Operation can not complete'}), 400)
+                        table.put_item(
+                            Item={
+                                'id': 14,
+                                'EmailAddress': uname,
+                                'Token': str(token),
+                                'CreationTime': str(int(time.time())),
+                                'ExpirationTime': str(expiryTimestamp)
+                            }
+                        )
+                        sns = boto3.client('sns', region_name='us-east-1')
+                        sns.publish(
+                            TopicArn='arn:aws:sns:us-east-1:441181477790:prod-sns-topic',
+                            Message=json.dumps(
+                                {'Email Address': uname, 'Token': str(token), 'CreationTime': str(int(time.time())),
+                                 'ExpirationTime': str(expiryTimestamp)}))
                         msg = f"Welcome {fname} {lname}, your account has been successfully created!"
                         msg = make_response(jsonify({'success': msg}), 200)
             else:
@@ -166,7 +174,7 @@ def login():
     if user:
         if not bcrypt.checkpw(user.password, hashpass):
             token = jwt.encode({'user': user.uname, 'exp': datetime.datetime.utcnow(
-            )+datetime.timedelta(minutes=30)}, webapp.config['SECRET_KEY'])
+            ) + datetime.timedelta(minutes=30)}, webapp.config['SECRET_KEY'])
             return make_response(jsonify({'success': "Login Successful!", 'token': token.decode('UTF-8')}))
     return make_response({'error': "User doesn't exist!"}, 401, {'WWW.Authentication': 'Basic realm: "login required"'})
 
@@ -184,7 +192,8 @@ def user(curr_user):
         try:
             if user:
                 msg = make_response(jsonify(
-                    {'First Name': user.fname, 'Last Name': user.lname, 'User Name': user.uname, 'CreatedAt': user.createdAt,
+                    {'First Name': user.fname, 'Last Name': user.lname, 'User Name': user.uname,
+                     'CreatedAt': user.createdAt,
                      'LastUpdated': user.lastUpdated}), 200)
             else:
                 msg = make_response(
@@ -323,15 +332,22 @@ def pic(curr_user):
                         profile_user.profile = file
                         profile_user.lastUpdated = func.now()
                         db.session.commit()
-                        msg = make_response(jsonify({"success": "User's profile picture successfully updated!", 'First Name': profile_user.fname, 'Last Name': profile_user.lname,
-                                            'User Name': profile_user.uname, 'Picture Name': profile_user.profile, 'CreatedAt': profile_user.createdAt, 'LastUpdated': profile_user.lastUpdated}), 200)
+                        msg = make_response(jsonify({"success": "User's profile picture successfully updated!",
+                                                     'First Name': profile_user.fname, 'Last Name': profile_user.lname,
+                                                     'User Name': profile_user.uname,
+                                                     'Picture Name': profile_user.profile,
+                                                     'CreatedAt': profile_user.createdAt,
+                                                     'LastUpdated': profile_user.lastUpdated}), 200)
                     else:
                         profile_user = Pic(
                             fname=user.fname, lname=user.lname, uname=user.uname, profile=file)
                         db.session.add(profile_user)
                         db.session.commit()
-                        msg = make_response(jsonify({"success": "User's profile picture successfully added!", 'First Name': profile_user.fname, 'Last Name': profile_user.lname,
-                                            'User Name': profile_user.uname, 'Picture Name': profile_user.profile, 'CreatedAt': profile_user.createdAt, 'LastUpdated': profile_user.lastUpdated}), 200)
+                        msg = make_response(jsonify(
+                            {"success": "User's profile picture successfully added!", 'First Name': profile_user.fname,
+                             'Last Name': profile_user.lname,
+                             'User Name': profile_user.uname, 'Picture Name': profile_user.profile,
+                             'CreatedAt': profile_user.createdAt, 'LastUpdated': profile_user.lastUpdated}), 200)
 
                 except ClientError as e:
                     msg = make_response(
@@ -357,11 +373,13 @@ def pic(curr_user):
                 bucket = s3.Bucket(bucket_name)
                 msg = make_response(
                     jsonify({"success": "User has no profile picture assigned!"}), 201)
-                for obj in bucket.objects.filter(Prefix=user.uname+'/'):
-                    user_info["Image Name"] = bucket.name+"/"+obj.key
-                    result.append(bucket.name+"/"+obj.key)
+                for obj in bucket.objects.filter(Prefix=user.uname + '/'):
+                    user_info["Image Name"] = bucket.name + "/" + obj.key
+                    result.append(bucket.name + "/" + obj.key)
                     msg = make_response(jsonify(
-                        {"success": "User's profile picture found!", 'First Name': profile_user.fname, 'Last Name': profile_user.lname, 'User Name': profile_user.uname, 'Picture Name': profile_user.profile, 'CreatedAt': profile_user.createdAt,
+                        {"success": "User's profile picture found!", 'First Name': profile_user.fname,
+                         'Last Name': profile_user.lname, 'User Name': profile_user.uname,
+                         'Picture Name': profile_user.profile, 'CreatedAt': profile_user.createdAt,
                          'LastUpdated': profile_user.lastUpdated}), 200)
         else:
             msg = make_response(jsonify({'error': "User doesn't exist!"}), 404)
@@ -378,7 +396,7 @@ def pic(curr_user):
                 s3 = boto3.resource('s3')
                 bucket = s3.Bucket(bucket_name)
                 try:
-                    for obj in bucket.objects.filter(Prefix=user.uname+'/'):
+                    for obj in bucket.objects.filter(Prefix=user.uname + '/'):
                         s3.Object(bucket.name, obj.key).delete()
                         Pic.query.filter(Pic.profile == file).delete()
                         db.session.commit()
