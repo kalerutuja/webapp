@@ -101,7 +101,6 @@ def signup():
             expiryTimestamp = int(time.time() + 300)
             dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
             sns = boto3.client('sns', region_name='us-east-1')
-
             table = dynamodb.Table('users')
 
             if re.search(email_regex, uname):
@@ -133,9 +132,18 @@ def signup():
                         db.session.commit()
                         db.session.add(new_user)
                         db.session.commit()
+                        scan = table.scan()
+                        with table.batch_writer() as batch:
+                            for each in scan['Items']:
+                                batch.delete_item(
+                                    Key={
+                                        'id': each['id'],
+                                        'EmailAddress': each['EmailAddress']
+                                    }
+                                )
                         table.put_item(
                             Item={
-                                'id': 14,
+                                'id': 1,
                                 'EmailAddress': uname,
                                 'Token': str(token),
                                 'CreationTime': str(int(time.time())),
