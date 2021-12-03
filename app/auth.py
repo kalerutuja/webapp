@@ -52,8 +52,6 @@ bucket_name = credentials[0]
 client_s3 = boto3.client('s3')
 
 
-
-
 def token_required(f):
     @wraps(f)
     def decorator(*args, **kwargs):
@@ -102,6 +100,8 @@ def signup():
             token = hashlib.md5(uname.encode()).hexdigest()
             expiryTimestamp = int(time.time() + 300)
             dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+            sns = boto3.client('sns', region_name='us-east-1')
+
             table = dynamodb.Table('users')
 
             if re.search(email_regex, uname):
@@ -142,7 +142,6 @@ def signup():
                                 'ExpirationTime': str(expiryTimestamp)
                             }
                         )
-                        sns = boto3.client('sns', region_name='us-east-1')
                         sns.publish(
                             TopicArn='arn:aws:sns:us-east-1:441181477790:prod-sns-topic',
                             Message=json.dumps(
