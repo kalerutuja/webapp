@@ -4,6 +4,8 @@ import bcrypt
 from sqlalchemy.sql import func
 from flask_httpauth import HTTPBasicAuth
 import boto3
+from boto3.dynamodb.conditions import Key
+
 from botocore.exceptions import NoCredentialsError, ClientError
 import os
 import logging
@@ -50,6 +52,8 @@ with open('/opt/resources') as f:
 
 bucket_name = credentials[0]
 client_s3 = boto3.client('s3')
+dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+sns = boto3.client('sns', region_name='us-east-1')
 
 
 def token_required(f):
@@ -72,17 +76,27 @@ def token_required(f):
 
 @auth.route('/v1/verifyUserEmail', methods=['GET'])
 def verifyUser():
-    verify = False
+    msg = "Verification"
     token = request.args.get('token')
-    uname = request.args.get('uname')
-    if token > str(int(time.time())):
-        verify = True
+    email = request.args.get('email')
+    table = dynamodb.Table('users')
+    response = table.query(
+        KeyConditionExpression=Key('id').eq(1)
+    )
+    if response['Items'][0]['EmailAddress'] == email and response['Items'][0]['Token'] == token:
+        if response['Items'][0]['ExpirationTime'] > str(int(time.time())):
+            verify = User.query.filter_by(uname=User.uname).first()
+            verify.verified = "Yes"
+            db.session.commit()
+            msg = make_response({'success': "User account successfully verified!"}, 200)
+        else:
+            msg = make_response({'error': "User's token expired!"}, 401)
     else:
-        verify = False
-    return verify
+        msg = make_response({'error': "Invalid Token!"}, 401)
+    return msg
 
 
-@ auth.route('/v1/sign-up', methods=['GET', 'POST'])
+@auth.route('/v1/sign-up', methods=['GET', 'POST'])
 def signup():
     msg = "welcome"
     db.create_all()
@@ -111,8 +125,6 @@ def signup():
             uname = request.args.get('uname')
             token = hashlib.md5(uname.encode()).hexdigest()
             expiryTimestamp = int(time.time() + 300)
-            dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-            sns = boto3.client('sns', region_name='us-east-1')
             table = dynamodb.Table('users')
 
             if re.search(email_regex, uname):
@@ -121,6 +133,8 @@ def signup():
                     msg = make_response(
                         jsonify({'error': 'User already exist!'}), 403)
                 else:
+                    User.query.delete()
+                    db.session.commit()
                     password = request.args.get('password')
                     cpassword = request.args.get('cpassword')
                     if len(password) < 6 or len(password) > 10:
@@ -144,31 +158,32 @@ def signup():
                         db.session.commit()
                         db.session.add(new_user)
                         db.session.commit()
-                        scan = table.scan()
-                        with table.batch_writer() as batch:
-                            for each in scan['Items']:
-                                batch.delete_item(
-                                    Key={
-                                        'id': each['id'],
-                                        'EmailAddress': each['EmailAddress']
-                                    }
-                                )
-                        table.put_item(
-                            Item={
-                                'id': 1,
-                                'EmailAddress': uname,
-                                'Token': str(token),
-                                'CreationTime': str(int(time.time())),
-                                'ExpirationTime': str(expiryTimestamp)
-                            }
-                        )
-                        sns.publish(
-                            TopicArn='arn:aws:sns:us-east-1:441181477790:prod-sns-topic',
-                            Message=json.dumps(
-                                {'Email Address': uname, 'Token': str(token), 'CreationTime': str(int(time.time())),
-                                 'ExpirationTime': str(expiryTimestamp)}))
                         msg = f"Welcome {fname} {lname}, your account has been successfully created!"
                         msg = make_response(jsonify({'success': msg}), 200)
+
+                scan = table.scan()
+                with table.batch_writer() as batch:
+                    for each in scan['Items']:
+                        batch.delete_item(
+                            Key={
+                                'id': each['id'],
+                                'EmailAddress': each['EmailAddress']
+                            }
+                        )
+                table.put_item(
+                    Item={
+                        'id': 1,
+                        'EmailAddress': uname,
+                        'Token': str(token),
+                        'CreationTime': str(int(time.time())),
+                        'ExpirationTime': str(expiryTimestamp)
+                    }
+                )
+                sns.publish(
+                    TopicArn='arn:aws:sns:us-east-1:441181477790:prod-sns-topic',
+                    Message=json.dumps(
+                        {'Email Address': uname, 'Token': str(token), 'CreationTime': str(int(time.time())),
+                         'ExpirationTime': str(expiryTimestamp)}))
             else:
                 msg = make_response(
                     jsonify({'error': 'Please enter valid Email Address!'}), 400)
@@ -179,7 +194,7 @@ def signup():
     return msg
 
 
-@ auth.route('/v1/login', methods=['GET'])
+@auth.route('/v1/login', methods=['GET'])
 def login():
     statsd.StatsClient().incr("statsd_login_GET")
     statsd.StatsClient().timer('statsd_login_GET', rate=1)
@@ -188,26 +203,31 @@ def login():
     auth0 = request.authorization
     pswd = auth0.password
     hashpass = bcrypt.hashpw(pswd.encode('utf-8'), salt)
-    user = db.session.using_bind('slave').query(
-        User).filter_by(uname=auth0.username).first()
-    if user and verifyUser() == True:
-        if not bcrypt.checkpw(user.password, hashpass):
-            token = jwt.encode({'user': user.uname, 'exp': datetime.datetime.utcnow(
-            ) + datetime.timedelta(minutes=30)}, webapp.config['SECRET_KEY'])
-            return make_response(jsonify({'success': "Login Successful!", 'token': token.decode('UTF-8')}))
+    user = db.session.using_bind('slave').query(User).filter_by(uname=auth0.username).first()
+    if user:
+        result = db.session.using_bind('slave').query(User).filter_by(uname=auth0.username, verified="Yes").first()
+        print(result)
+        if result:
+            if not bcrypt.checkpw(user.password, hashpass):
+                token = jwt.encode({'user': user.uname, 'exp': datetime.datetime.utcnow(
+                ) + datetime.timedelta(minutes=30)}, webapp.config['SECRET_KEY'])
+                return make_response(jsonify({'success': "Login Successful!", 'token': token.decode('UTF-8')}))
+
+        else:
+            return make_response({'error': "User is not verified!"}, 401,
+                                 {'WWW.Authentication': 'Basic realm: "User verification required"'})
     return make_response({'error': "User doesn't exist!"}, 401, {'WWW.Authentication': 'Basic realm: "login required"'})
 
 
-@ auth.route('/v1/user', methods=['GET', 'POST'])
-@ token_required
+@auth.route('/v1/user', methods=['GET', 'POST'])
+@token_required
 def user(curr_user):
-    if request.method == 'GET' and verifyUser() == True:
+    if request.method == 'GET':
         user = db.session.using_bind('slave').query(
             User).filter_by(uname=curr_user.uname).first()
         statsd.StatsClient().incr("statsd_user_GET")
         statsd.StatsClient().timer('statsd_user_GET', rate=1)
         logger.info("Sending HTTP GET")
-
         try:
             if user:
                 msg = make_response(jsonify(
@@ -221,7 +241,7 @@ def user(curr_user):
             msg = make_response(
                 jsonify({'error': 'Operation can not complete'}), 400)
 
-    if request.method == 'POST' and verifyUser() == True:
+    if request.method == 'POST':
         user = User.query.filter_by(uname=curr_user.uname).first()
         statsd.StatsClient().incr("statsd_user_POST")
         statsd.StatsClient().timer('statsd_user_POST', rate=1)
@@ -265,8 +285,8 @@ def user(curr_user):
     return msg
 
 
-@ auth.route('/v1/update', methods=['PUT'])
-@ token_required
+@auth.route('/v1/update', methods=['PUT'])
+@token_required
 def update(curr_user):
     statsd.StatsClient().incr("statsd_update_PUT")
     statsd.StatsClient().timer('statsd_update_PUT', rate=1)
@@ -275,7 +295,7 @@ def update(curr_user):
     webapp.logger.info('Info level log')
     webapp.logger.warning('Warning level log')
     user = User.query.filter_by(uname=curr_user.uname).first()
-    if user and verifyUser() == True:
+    if user:
         fname = request.args.get('fname')
         lname = request.args.get('lname')
         password = request.args.get('password')
@@ -307,8 +327,8 @@ def update(curr_user):
     return msg
 
 
-@ auth.route('/v1/pic', methods=['GET', 'POST', 'DELETE'])
-@ token_required
+@auth.route('/v1/pic', methods=['GET', 'POST', 'DELETE'])
+@token_required
 def pic(curr_user):
     webapp.logger.info('Info level log')
     webapp.logger.warning('Warning level log')
@@ -320,7 +340,7 @@ def pic(curr_user):
     data_file_folder = os.path.join(os.getcwd(), 'app/pics')
     file = os.listdir(data_file_folder)[0]
 
-    if request.method == 'POST' and verifyUser() == True:
+    if request.method == 'POST':
         user = User.query.filter_by(uname=curr_user.uname).first()
 
         object_name = user.uname + "/" + file
@@ -353,7 +373,7 @@ def pic(curr_user):
                         db.session.commit()
                         msg = make_response(jsonify({"success": "User's profile picture successfully updated!",
                                                      'First Name': profile_user.fname, 'Last Name': profile_user.lname,
-                                                    'User Name': profile_user.uname,
+                                                     'User Name': profile_user.uname,
                                                      'Picture Name': profile_user.profile,
                                                      'CreatedAt': profile_user.createdAt,
                                                      'LastUpdated': profile_user.lastUpdated}), 200)
@@ -374,7 +394,7 @@ def pic(curr_user):
         else:
             msg = make_response(jsonify({'error': "User doesn't exist!"}), 404)
 
-    if request.method == 'GET' and verifyUser() == True:
+    if request.method == 'GET':
         user = db.session.using_bind('slave').query(
             User).filter_by(uname=curr_user.uname).first()
         statsd.StatsClient().incr("statsd_pic_GET")
@@ -403,7 +423,7 @@ def pic(curr_user):
         else:
             msg = make_response(jsonify({'error': "User doesn't exist!"}), 404)
 
-    if request.method == 'DELETE' and verifyUser() == True:
+    if request.method == 'DELETE':
         user = User.query.filter_by(uname=curr_user.uname).first()
 
         statsd.StatsClient().incr("statsd_pic_DELETE")
@@ -432,7 +452,7 @@ def pic(curr_user):
     return msg
 
 
-@ auth.route('/v1/users', methods=['GET'])
+@auth.route('/v1/users', methods=['GET'])
 def get_all_users():
     statsd.StatsClient().incr("statsd_users_GET")
     statsd.StatsClient().timer('statsd_users_GET', rate=1)

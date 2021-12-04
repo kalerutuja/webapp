@@ -12,6 +12,7 @@ class User(db.Model, UserMixin):
     password = db.Column('password', db.LargeBinary(60))
     createdAt = db.Column('createdTime', db.DateTime(timezone=True), default=func.now())
     lastUpdated = db.Column('updatedTime', db.DateTime(timezone=True), default=func.now())
+    verified = db.Column('verified', db.String(200), default="No")
 
 class Pic(db.Model,UserMixin):
     __tablename__ = "pic"
