@@ -124,7 +124,7 @@ def signup():
             lname = request.args.get('lname')
             uname = request.args.get('uname')
             token = hashlib.md5(uname.encode()).hexdigest()
-            expiryTimestamp = int(time.time() + 300)
+            expiryTimestamp = int(time.time() + 120)
             table = dynamodb.Table('users')
 
             if re.search(email_regex, uname):
