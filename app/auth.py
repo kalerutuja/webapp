@@ -88,7 +88,8 @@ def verifyUser():
             verify = User.query.filter_by(uname=User.uname).first()
             verify.verified = "Yes"
             db.session.commit()
-            msg = make_response({'success': "User account successfully verified!"}, 200)
+            msg = make_response(
+                {'success': "User account successfully verified!"}, 200)
         else:
             msg = make_response({'error': "User's token expired!"}, 401)
     else:
@@ -170,6 +171,7 @@ def signup():
                                 'EmailAddress': each['EmailAddress']
                             }
                         )
+                # When user creates a new account. Sign-up function puts a dynamodb item with new user details
                 table.put_item(
                     Item={
                         'id': 1,
@@ -179,6 +181,7 @@ def signup():
                         'ExpirationTime': str(expiryTimestamp)
                     }
                 )
+                # and then Publish to a SNS Topic. SNS topic will trigger lambda function
                 sns.publish(
                     TopicArn='arn:aws:sns:us-east-1:441181477790:prod-sns-topic',
                     Message=json.dumps(
@@ -203,9 +206,11 @@ def login():
     auth0 = request.authorization
     pswd = auth0.password
     hashpass = bcrypt.hashpw(pswd.encode('utf-8'), salt)
-    user = db.session.using_bind('slave').query(User).filter_by(uname=auth0.username).first()
+    user = db.session.using_bind('slave').query(
+        User).filter_by(uname=auth0.username).first()
     if user:
-        result = db.session.using_bind('slave').query(User).filter_by(uname=auth0.username, verified="Yes").first()
+        result = db.session.using_bind('slave').query(User).filter_by(
+            uname=auth0.username, verified="Yes").first()
         print(result)
         if result:
             if not bcrypt.checkpw(user.password, hashpass):
